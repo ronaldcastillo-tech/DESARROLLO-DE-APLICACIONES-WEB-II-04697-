@@ -32,6 +32,7 @@ public class JwtService {
 				.subject(user.getUsername())
 				.claim("userId", user.getId())
 				.claim("role", user.getRole())
+				.claim("imagelProfile", user.getRole())
 				.issuedAt(Date.from(now))
 				.expiration(Date.from(now.plusSeconds(expirationMinutes * 60)))
 				.signWith(secretKey)

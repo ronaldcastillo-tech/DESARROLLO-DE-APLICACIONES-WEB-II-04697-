@@ -1,0 +1,532 @@
+{
+  "info": {
+    "_postman_id": "8f3b20a1-42cb-461d-a94f-customer-cases-2026",
+    "name": "Cibertec Customer Cases - JWT Sales Services",
+    "description": "# Documentación de Pruebas: Módulo de Clientes (Customer)\n\nColección diseñada para verificar los **2 casos de uso** solicitados en la capa de negocio y controladores del servicio `jwt-sales-services`:\n\n---\n\n### 📌 Caso de Uso 1: Cliente Público\n- **Descripción**: Registro abierto a usuarios no autenticados (portal web, landing page, etc.).\n- **Endpoint**: `POST /customers/public` (o `/public/customers`)\n- **Seguridad**: Público (Sin cabecera `Authorization` ni token JWT).\n- **Regla de Negocio**: Nace obligatoriamente con el estado **`POR CONFIRMAR`**.\n\n---\n\n### 📌 Caso de Uso 2: Cliente Protegido (Aplicación Interna)\n- **Descripción**: Registro gestionado por personal o sistemas internos con permisos.\n- **Endpoint**: `POST /customers`\n- **Seguridad**: Protegido (Requiere cabecera `Authorization: Bearer {{jwt_token}}`).\n- **Regla de Negocio**: Nace automáticamente con el estado **`CONFIRMADO`**.\n\n---\n\n### 🚀 Orden de Ejecución Sugerido:\n1. **0. Autenticación**: Ejecutar `Crear Usuario Admin` y luego `Login - Obtener Token JWT` (el script guarda automáticamente el token en `{{jwt_token}}`).\n2. **1. Caso 1: Cliente Público**: Ejecutar `Registrar Cliente Publico (Sin Token)` y verificar que el estado retornado es `POR CONFIRMAR`.\n3. **2. Caso 2: Cliente Protegido**: Ejecutar `Registrar Cliente Protegido (Con Token JWT)` y verificar que el estado retornado es `CONFIRMADO`.\n4. **3. Consultas y Operaciones**: Listar todos los clientes (`GET /customers`) para comprobar la coexistencia de ambos estados.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "jwt_base_url",
+      "value": "http://localhost:8083",
+      "type": "string"
+    },
+    {
+      "key": "jwt_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "public_customer_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "protected_customer_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "0. Autenticación (Prerrequisito)",
+      "description": "Endpoints para crear el usuario de prueba y obtener el Bearer Token JWT para los endpoints protegidos.",
+      "item": [
+        {
+          "name": "0.1 Crear Usuario Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code es 201 Created o 409 Si ya existe', function () {",
+                  "    pm.expect([201, 409]).to.include(pm.response.code);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"email\": \"admin@cibertec.edu.pe\",\n  \"password\": \"secret123\",\n  \"role\": \"ADMIN\"\n}"
+            },
+            "url": {
+              "raw": "{{jwt_base_url}}/users",
+              "host": [
+                "{{jwt_base_url}}"
+              ],
+              "path": [
+                "users"
+              ]
+            },
+            "description": "Crea el usuario administrador para generar el token JWT. Si ya existe, responde 409 Conflict."
+          }
+        },
+        {
+          "name": "0.2 Login - Obtener Token JWT",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code es 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const body = pm.response.json();",
+                  "pm.test('Token JWT retornado con éxito', function () {",
+                  "    pm.expect(body.token).to.be.a('string').and.not.empty;",
+                  "    pm.expect(body.tokenType).to.eql('Bearer');",
+                  "});",
+                  "// Guarda el token en variables de colección y entorno",
+                  "pm.collectionVariables.set('jwt_token', body.token);",
+                  "if (pm.environment) {",
+                  "    pm.environment.set('jwt_token', body.token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"secret123\"\n}"
+            },
+            "url": {
+              "raw": "{{jwt_base_url}}/auth/login",
+              "host": [
+                "{{jwt_base_url}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Autentica las credenciales y almacena automáticamente el token JWT en `{{jwt_token}}`."
+          }
+        }
+      ]
+    },
+    {
+      "name": "1. Caso de Uso 1: Cliente Público (POR CONFIRMAR)",
+      "description": "Casos de prueba para el registro público de clientes. No se requiere autenticación ni token JWT. El estado asignado por la regla de negocio es siempre 'POR CONFIRMAR'.",
+      "item": [
+        {
+          "name": "1.1 Registrar Cliente Público (Sin Token) -> Estado POR CONFIRMAR",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code es 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "const data = pm.response.json();",
+                  "pm.test('El cliente nace con estado POR CONFIRMAR', function () {",
+                  "    pm.expect(data.status).to.eql('POR CONFIRMAR');",
+                  "});",
+                  "pm.test('Customer ID generado correctamente', function () {",
+                  "    pm.expect(data.customerId).to.be.a('number');",
+                  "});",
+                  "pm.collectionVariables.set('public_customer_id', data.customerId);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Carlos Mendoza\",\n  \"email\": \"carlos.mendoza.publico@example.com\"\n}"
+            },
+            "url": {
+              "raw": "{{jwt_base_url}}/customers/public",
+              "host": [
+                "{{jwt_base_url}}"
+              ],
+              "path": [
+                "customers",
+                "public"
+              ]
+            },
+            "description": "Registra un cliente desde el endpoint público sin token JWT. La regla de negocio debe asignarle el estado 'POR CONFIRMAR'."
+          }
+        },
+        {
+          "name": "1.2 Registrar Cliente Público con Ruta Alternativa (/public/customers)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code es 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "const data = pm.response.json();",
+                  "pm.test('El cliente nace con estado POR CONFIRMAR', function () {",
+                  "    pm.expect(data.status).to.eql('POR CONFIRMAR');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Lucia Quispe\",\n  \"email\": \"lucia.quispe.publico@example.com\"\n}"
+            },
+            "url": {
+              "raw": "{{jwt_base_url}}/public/customers",
+              "host": [
+                "{{jwt_base_url}}"
+              ],
+              "path": [
+                "public",
+                "customers"
+              ]
+            },
+            "description": "Prueba la ruta alternativa /public/customers soportada por el controlador."
+          }
+        },
+        {
+          "name": "1.3 Rechazar Duplicidad de Correo Público (Debe dar 409 Conflict)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code es 409 Conflict por email duplicado', function () {",
+                  "    pm.response.to.have.status(409);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Carlos Mendoza Intento 2\",\n  \"email\": \"carlos.mendoza.publico@example.com\"\n}"
+            },
+            "url": {
+              "raw": "{{jwt_base_url}}/customers/public",
+              "host": [
+                "{{jwt_base_url}}"
+              ],
+              "path": [
+                "customers",
+                "public"
+              ]
+            },
+            "description": "Prueba de validación: intenta registrar un correo ya existente. Debe rechazar con código 409 Conflict."
+          }
+        },
+        {
+          "name": "1.4 Falla de Seguridad: Crear en /customers Sin Token (Debe dar 403 Forbidden)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code es 403 Forbidden por falta de JWT', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Usuario No Autorizado\",\n  \"email\": \"noauth@example.com\"\n}"
+            },
+            "url": {
+              "raw": "{{jwt_base_url}}/customers",
+              "host": [
+                "{{jwt_base_url}}"
+              ],
+              "path": [
+                "customers"
+              ]
+            },
+            "description": "Prueba negativa: Intenta invocar el endpoint interno protegido sin enviar cabecera Authorization. Spring Security debe responder 403 Forbidden."
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Caso de Uso 2: Cliente Protegido / Aplicación Interna (CONFIRMADO)",
+      "description": "Casos de prueba para el registro interno de clientes. Requiere token JWT válido. La regla de negocio asigna automáticamente el estado 'CONFIRMADO'.",
+      "item": [
+        {
+          "name": "2.1 Registrar Cliente Protegido (Con Token JWT) -> Estado CONFIRMADO",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code es 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "const data = pm.response.json();",
+                  "pm.test('El cliente protegido nace con estado CONFIRMADO', function () {",
+                  "    pm.expect(data.status).to.eql('CONFIRMADO');",
+                  "});",
+                  "pm.test('Customer ID generado correctamente', function () {",
+                  "    pm.expect(data.customerId).to.be.a('number');",
+                  "});",
+                  "pm.collectionVariables.set('protected_customer_id', data.customerId);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Corporación Logística del Perú S.A.C.\",\n  \"email\": \"contacto@corplogistica.pe\"\n}"
+            },
+            "url": {
+              "raw": "{{jwt_base_url}}/customers",
+              "host": [
+                "{{jwt_base_url}}"
+              ],
+              "path": [
+                "customers"
+              ]
+            },
+            "description": "Registra un cliente desde el endpoint interno usando JWT. La regla de negocio asigna el estado 'CONFIRMADO'."
+          }
+        },
+        {
+          "name": "2.2 Listar Todos los Clientes (Con Token JWT)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code es 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const list = pm.response.json();",
+                  "pm.test('La respuesta es una lista no vacía', function () {",
+                  "    pm.expect(list).to.be.an('array');",
+                  "    pm.expect(list.length).to.be.at.least(2);",
+                  "});",
+                  "pm.test('Existen registros con ambos estados', function () {",
+                  "    const hasPorConfirmar = list.some(c => c.status === 'POR CONFIRMAR');",
+                  "    const hasConfirmado = list.some(c => c.status === 'CONFIRMADO');",
+                  "    pm.expect(hasPorConfirmar).to.be.true;",
+                  "    pm.expect(hasConfirmado).to.be.true;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{jwt_base_url}}/customers",
+              "host": [
+                "{{jwt_base_url}}"
+              ],
+              "path": [
+                "customers"
+              ]
+            },
+            "description": "Obtiene la lista completa de clientes y valida que coexistan clientes con estado 'POR CONFIRMAR' (públicos) y 'CONFIRMADO' (internos)."
+          }
+        },
+        {
+          "name": "2.3 Consultar Cliente por ID (Con Token JWT)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code es 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const data = pm.response.json();",
+                  "pm.test('Datos de cliente retornados con éxito', function () {",
+                  "    pm.expect(data.customerId).to.eql(pm.collectionVariables.get('protected_customer_id'));",
+                  "    pm.expect(data.status).to.eql('CONFIRMADO');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{jwt_base_url}}/customers/{{protected_customer_id}}",
+              "host": [
+                "{{jwt_base_url}}"
+              ],
+              "path": [
+                "customers",
+                "{{protected_customer_id}}"
+              ]
+            },
+            "description": "Consulta el cliente protegido por su ID."
+          }
+        },
+        {
+          "name": "2.4 Actualizar Estado de Cliente Público a CONFIRMADO (PUT)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code es 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const data = pm.response.json();",
+                  "pm.test('Estado actualizado a CONFIRMADO', function () {",
+                  "    pm.expect(data.status).to.eql('CONFIRMADO');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Carlos Mendoza Confirmado\",\n  \"email\": \"carlos.mendoza.publico@example.com\",\n  \"status\": \"CONFIRMADO\"\n}"
+            },
+            "url": {
+              "raw": "{{jwt_base_url}}/customers/{{public_customer_id}}",
+              "host": [
+                "{{jwt_base_url}}"
+              ],
+              "path": [
+                "customers",
+                "{{public_customer_id}}"
+              ]
+            },
+            "description": "Simula la confirmación manual de un cliente público por parte de un usuario autenticado."
+          }
+        },
+        {
+          "name": "2.5 Eliminar Cliente (DELETE)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code es 204 No Content', function () {",
+                  "    pm.response.to.have.status(204);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{jwt_base_url}}/customers/{{public_customer_id}}",
+              "host": [
+                "{{jwt_base_url}}"
+              ],
+              "path": [
+                "customers",
+                "{{public_customer_id}}"
+              ]
+            },
+            "description": "Elimina el cliente de prueba por ID. Requiere token JWT."
+          }
+        }
+      ]
+    }
+  ]
+}
