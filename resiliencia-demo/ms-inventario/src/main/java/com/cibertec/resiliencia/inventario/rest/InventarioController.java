@@ -2,6 +2,7 @@ package com.cibertec.resiliencia.inventario.rest;
 
 import com.cibertec.resiliencia.inventario.dto.DemoStateResponse;
 import com.cibertec.resiliencia.inventario.dto.StockResponse;
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -27,6 +28,7 @@ public class InventarioController {
 		inventario.put(3L, new StockResponse(3L, "Mouse gamer", 25, true, "ms-inventario"));
 	}
 
+	@RateLimiter(name = "inventario", fallbackMethod = "fallbackConsultarStock")
 	@GetMapping("/inventario/{productoId}")
 	public StockResponse consultarStock(@PathVariable Long productoId) throws InterruptedException {
 		if (fallaActiva.get()) {
@@ -58,5 +60,10 @@ public class InventarioController {
 	@GetMapping("/inventario/demo/estado")
 	public DemoStateResponse estadoDemo() {
 		return new DemoStateResponse(fallaActiva.get(), demoraMillis.get());
+	}
+
+	public StockResponse fallbackConsultarStock(@PathVariable Long productoId, Throwable error) {
+		throw new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS,
+				"Demasiadas solicitudes a inventario. Intenta en unos segundos.");
 	}
 }

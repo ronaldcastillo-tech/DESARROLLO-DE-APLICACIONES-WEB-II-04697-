@@ -6,7 +6,19 @@ server:
   port: 8091
 
 management:
+  health:
+    ratelimiters:
+      enabled: true
   endpoints:
     web:
       exposure:
-        include: health,info
+        include: health,info,ratelimiters,ratelimiterevents
+
+resilience4j:
+  ratelimiter:
+    instances:
+      inventario:
+        registerHealthIndicator: true
+        limitForPeriod: 3
+        limitRefreshPeriod: 10s
+        timeoutDuration: 0
