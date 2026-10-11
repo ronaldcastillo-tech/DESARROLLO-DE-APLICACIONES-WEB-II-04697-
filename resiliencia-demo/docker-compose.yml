@@ -1,0 +1,33 @@
+services:
+
+  ms-inventario:
+    build:
+      context: ./ms-inventario
+    container_name: ms-inventario
+    ports:
+      - "8091:8091"
+    networks:
+      - resiliencia-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8091/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  ms-pedidos:
+    build:
+      context: ./ms-pedidos
+    container_name: ms-pedidos
+    ports:
+      - "8090:8090"
+    environment:
+      - INVENTARIO_BASE_URL=http://ms-inventario:8091
+    depends_on:
+      ms-inventario:
+        condition: service_healthy
+    networks:
+      - resiliencia-net
+
+networks:
+  resiliencia-net:
+    driver: bridge
