@@ -6,9 +6,9 @@ scrape_configs:
   - job_name: ms-pedidos
     metrics_path: /actuator/prometheus
     static_configs:
-      - targets: [ 'ms-pedidos:8090' ]
+      - targets: [ '192.168.1.83:8090' ]
 
   - job_name: ms-inventario
     metrics_path: /actuator/prometheus
     static_configs:
-      - targets: [ 'ms-inventario:8091' ]
+      - targets: [ '192.168.1.83:8091' ]
