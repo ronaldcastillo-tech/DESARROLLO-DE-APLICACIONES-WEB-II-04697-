@@ -1,0 +1,228 @@
+{
+  "info": {
+    "name": "resiliencia-demo — Actuator & Observabilidad",
+    "_postman_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "description": "Endpoints de Spring Boot Actuator para observabilidad: health, métricas Prometheus, circuit breakers y rate limiters.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:8090", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "01 - Health",
+      "item": [
+        {
+          "name": "Health general",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/actuator/health",
+            "description": "Estado general del servicio. Incluye Resilience4j si está configurado como health indicator."
+          }
+        },
+        {
+          "name": "Health — circuit breakers",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/actuator/health/circuitBreakers",
+            "description": "Estado de todos los circuit breakers registrados."
+          }
+        },
+        {
+          "name": "Health — rate limiters",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/actuator/health/rateLimiters",
+            "description": "Estado de todos los rate limiters registrados."
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 - Info & Env",
+      "item": [
+        {
+          "name": "Info",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/actuator/info",
+            "description": "Información de la aplicación (versión, build, etc.)."
+          }
+        },
+        {
+          "name": "Endpoints disponibles",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/actuator",
+            "description": "Lista todos los endpoints del actuator expuestos."
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 - Métricas",
+      "item": [
+        {
+          "name": "Lista de métricas",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/actuator/metrics",
+            "description": "Listado completo de todas las métricas disponibles."
+          }
+        },
+        {
+          "name": "Métrica — HTTP server requests",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/actuator/metrics/http.server.requests",
+            "description": "Conteo y latencia de requests HTTP recibidos."
+          }
+        },
+        {
+          "name": "Métrica — JVM memoria heap",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/actuator/metrics/jvm.memory.used?tag=area:heap",
+              "host": ["{{base_url}}"],
+              "path": ["actuator", "metrics", "jvm.memory.used"],
+              "query": [{ "key": "tag", "value": "area:heap" }]
+            },
+            "description": "Memoria heap usada por la JVM."
+          }
+        },
+        {
+          "name": "Métrica — CB llamadas exitosas",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/actuator/metrics/resilience4j.circuitbreaker.calls?tag=kind:successful",
+              "host": ["{{base_url}}"],
+              "path": ["actuator", "metrics", "resilience4j.circuitbreaker.calls"],
+              "query": [{ "key": "tag", "value": "kind:successful" }]
+            },
+            "description": "Llamadas exitosas registradas por el circuit breaker."
+          }
+        },
+        {
+          "name": "Métrica — CB llamadas fallidas",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/actuator/metrics/resilience4j.circuitbreaker.calls?tag=kind:failed",
+              "host": ["{{base_url}}"],
+              "path": ["actuator", "metrics", "resilience4j.circuitbreaker.calls"],
+              "query": [{ "key": "tag", "value": "kind:failed" }]
+            },
+            "description": "Llamadas fallidas registradas por el circuit breaker."
+          }
+        },
+        {
+          "name": "Métrica — CB llamadas no permitidas (OPEN)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/actuator/metrics/resilience4j.circuitbreaker.calls?tag=kind:not_permitted",
+              "host": ["{{base_url}}"],
+              "path": ["actuator", "metrics", "resilience4j.circuitbreaker.calls"],
+              "query": [{ "key": "tag", "value": "kind:not_permitted" }]
+            },
+            "description": "Llamadas bloqueadas porque el CB está en estado OPEN."
+          }
+        },
+        {
+          "name": "Métrica — estado del CB",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/actuator/metrics/resilience4j.circuitbreaker.state",
+            "description": "Estado actual del circuit breaker (0=CLOSED, 1=OPEN, 2=HALF_OPEN)."
+          }
+        },
+        {
+          "name": "Métrica — Rate limiter disponibles",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/actuator/metrics/resilience4j.ratelimiter.available.permissions",
+            "description": "Permisos disponibles en el rate limiter en este momento."
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 - Prometheus (scrape)",
+      "item": [
+        {
+          "name": "Prometheus — todas las métricas",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/actuator/prometheus",
+            "description": "Endpoint scrapeado por Prometheus. Devuelve todas las métricas en formato text/plain exposition format."
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 - Resilience4j directo",
+      "item": [
+        {
+          "name": "Circuit Breakers — todos",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/actuator/circuitbreakers",
+            "description": "Estado detallado de todos los circuit breakers: estado, tasa de fallos, contadores."
+          }
+        },
+        {
+          "name": "Circuit Breaker Events",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/actuator/circuitbreakerevents",
+            "description": "Historial de eventos del CB (SUCCESS, ERROR, NOT_PERMITTED, STATE_TRANSITION)."
+          }
+        },
+        {
+          "name": "Rate Limiters — todos",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/actuator/ratelimiters",
+            "description": "Estado de todos los rate limiters."
+          }
+        },
+        {
+          "name": "Rate Limiter Events",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/actuator/ratelimiterevents",
+            "description": "Historial de eventos del rate limiter (SUCCESSFUL, FAILED)."
+          }
+        }
+      ]
+    },
+    {
+      "name": "06 - Loggers",
+      "item": [
+        {
+          "name": "Lista de loggers",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/actuator/loggers",
+            "description": "Muestra todos los loggers y su nivel configurado."
+          }
+        },
+        {
+          "name": "Cambiar nivel de log (DEBUG)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/actuator/loggers/com.example",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"configuredLevel\": \"DEBUG\"\n}"
+            },
+            "description": "Cambia el nivel de log en caliente sin reiniciar el servicio."
+          }
+        }
+      ]
+    }
+  ]
+}
