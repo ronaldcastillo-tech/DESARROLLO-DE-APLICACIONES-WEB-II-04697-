@@ -214,7 +214,7 @@
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "url": "{{base_url}}/actuator/loggers/com.example",
+            "url": "{{base_url}}/actuator/loggers/com.cibertec.resiliencia.pedidos",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"configuredLevel\": \"DEBUG\"\n}"
