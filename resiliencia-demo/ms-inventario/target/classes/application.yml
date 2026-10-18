@@ -12,7 +12,10 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,ratelimiters,ratelimiterevents
+        include: health,info,metrics,prometheus,ratelimiters,ratelimiterevents
+  metrics:
+    tags:
+      application: ${spring.application.name}
 
 resilience4j:
   ratelimiter:

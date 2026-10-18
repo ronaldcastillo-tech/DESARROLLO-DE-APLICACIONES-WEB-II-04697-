@@ -1,0 +1,133 @@
+{
+  "title": "Resiliencia Demo",
+  "uid": "resiliencia-demo",
+  "schemaVersion": 38,
+  "version": 1,
+  "refresh": "5s",
+  "time": { "from": "now-5m", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Circuit Breaker — Estado (ms-pedidos)",
+      "type": "stat",
+      "gridPos": { "x": 0, "y": 0, "w": 8, "h": 4 },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "resilience4j_circuitbreaker_state{application=\"ms-pedidos\"}",
+          "legendFormat": "{{name}} — {{state}}"
+        }
+      ],
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "colorMode": "background"
+      }
+    },
+    {
+      "id": 2,
+      "title": "Circuit Breaker — Tasa de fallos % (ms-pedidos)",
+      "type": "timeseries",
+      "gridPos": { "x": 8, "y": 0, "w": 16, "h": 8 },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "resilience4j_circuitbreaker_failure_rate{application=\"ms-pedidos\"}",
+          "legendFormat": "failure rate"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "resilience4j_circuitbreaker_slow_call_rate{application=\"ms-pedidos\"}",
+          "legendFormat": "slow call rate"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "percent", "min": 0, "max": 100 }
+      }
+    },
+    {
+      "id": 3,
+      "title": "Circuit Breaker — Llamadas (ms-pedidos)",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 4, "w": 8, "h": 8 },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "rate(resilience4j_circuitbreaker_calls_seconds_count{application=\"ms-pedidos\"}[30s])",
+          "legendFormat": "{{kind}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "reqps" }
+      }
+    },
+    {
+      "id": 4,
+      "title": "Rate Limiter — Llamadas disponibles (ms-inventario)",
+      "type": "stat",
+      "gridPos": { "x": 0, "y": 12, "w": 8, "h": 4 },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "resilience4j_ratelimiter_available_permissions{application=\"ms-inventario\"}",
+          "legendFormat": "{{name}}"
+        }
+      ],
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "colorMode": "background",
+        "thresholds": {
+          "steps": [
+            { "color": "red", "value": 0 },
+            { "color": "yellow", "value": 1 },
+            { "color": "green", "value": 3 }
+          ]
+        }
+      }
+    },
+    {
+      "id": 5,
+      "title": "Rate Limiter — Llamadas en espera (ms-inventario)",
+      "type": "timeseries",
+      "gridPos": { "x": 8, "y": 12, "w": 16, "h": 8 },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "resilience4j_ratelimiter_waiting_threads{application=\"ms-inventario\"}",
+          "legendFormat": "threads en espera — {{name}}"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "JVM — Memoria heap usada",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 20, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "jvm_memory_used_bytes{area=\"heap\"}",
+          "legendFormat": "{{application}} — {{id}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "bytes" }
+      }
+    },
+    {
+      "id": 7,
+      "title": "HTTP — Tasa de requests por servicio",
+      "type": "timeseries",
+      "gridPos": { "x": 12, "y": 20, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "rate(http_server_requests_seconds_count[30s])",
+          "legendFormat": "{{application}} {{uri}} {{status}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "reqps" }
+      }
+    }
+  ]
+}
